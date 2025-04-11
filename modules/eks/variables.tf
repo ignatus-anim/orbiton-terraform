@@ -21,7 +21,9 @@ variable "vpc_id" {
 variable "private_subnet_ids" {
   type = list(string)
 }
-
+variable "public_subnet_ids" {
+  type = list(string)
+}
 variable "node_group_instance_type" {
   type = string
 }
@@ -40,4 +42,19 @@ variable "min_capacity" {
 
 variable "tags" {
   type = map(string)
+}
+
+variable "node_group_name" {
+  type = string
+  
+}
+
+variable "cluster_security_group_id" {
+  type        = string
+  description = "Security group ID for the EKS cluster"
+}
+
+variable "node_security_group_id" {
+  type        = string
+  description = "Security group ID for the EKS nodes"
 }

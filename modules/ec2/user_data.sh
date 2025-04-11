@@ -17,6 +17,6 @@ systemctl start nginx
 systemctl enable nginx
 
 # Pull and run the Docker image
-docker pull ignatusa3/tiny-node-app:1.0
-docker run -d -p 4000:4000 --name tiny-node-app ignatusa3/tiny-node-app:1.0
+docker pull ${container_image}
+docker run -d -p ${container_port}:${container_port} --name tiny-node-app ${container_image}
 

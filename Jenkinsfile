@@ -5,7 +5,8 @@ pipeline {
         AWS_REGION = 'eu-west-1'
         PROJECT_NAME = 'orbiton'
         ENVIRONMENT = 'dev'
-        DOCKER_IMAGE = 'ignatusa3/tiny-node-app:1.0'
+        DOCKER_IMAGE = 'ignatusa3/nextjs-frontend:133c6a3e7e4ff8ce161d95257979e23abf286e68'
+        CONTAINER_PORT = '3000'
         TERRAFORM_DIR = 'environments/dev'
     }
 
