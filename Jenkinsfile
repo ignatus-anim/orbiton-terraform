@@ -1,4 +1,3 @@
-
 pipeline {
     agent any
 
@@ -40,17 +39,26 @@ pipeline {
             }
         }
 
-        stage('Terraform Init') {
+        stage('Terraform Init & Validate') {
             steps {
-                dir(TERRAFORM_DIR) {
-                    sh """
-                        terraform init \
-                            -backend-config="bucket=orbiton-terraform-state" \
-                            -backend-config="key=${ENVIRONMENT}/terraform.tfstate" \
-                            -backend-config="region=${AWS_REGION}" \
-                            -backend-config="dynamodb_table=orbiton-terraform-locks" \
-                            -backend-config="encrypt=true"
-                    """
+                withCredentials([
+                    aws(credentialsId: 'aws-credentials', accessKeyVariable: 'AWS_ACCESS_KEY_ID', secretKeyVariable: 'AWS_SECRET_ACCESS_KEY')
+                ]) {
+                    dir(TERRAFORM_DIR) {
+                        sh '''
+                            export AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID
+                            export AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY
+
+                            terraform init \
+                                -backend-config="bucket=orbiton-terraform-state" \
+                                -backend-config="key=${ENVIRONMENT}/terraform.tfstate" \
+                                -backend-config="region=${AWS_REGION}" \
+                                -backend-config="dynamodb_table=orbiton-terraform-locks" \
+                                -backend-config="encrypt=true"
+
+                            terraform validate
+                        '''
+                    }
                 }
             }
         }
@@ -94,28 +102,18 @@ pipeline {
             }
             steps {
                 script {
-                    // Update kubeconfig
                     sh """
                         aws eks update-kubeconfig \
                             --region ${AWS_REGION} \
                             --name ${PROJECT_NAME}-${ENVIRONMENT}-eks
-                    """
 
-                    // Deploy to EKS
-                    sh """
                         kubectl apply -f kubernetes/deployment.yaml
                         kubectl rollout status deployment/tiny-node-app
-                    """
 
-                    // Get service URL
-                    sh """
                         echo "Waiting for LoadBalancer to be ready..."
                         sleep 30
                         kubectl get service tiny-node-app-service
-                    """
 
-                    // Get EC2 instance details
-                    sh """
                         echo "EC2 Instance Details:"
                         aws ec2 describe-instances \
                             --region ${AWS_REGION} \
@@ -140,4 +138,3 @@ pipeline {
         }
     }
 }
-
