@@ -19,6 +19,11 @@ cluster_name  = "orbiton-cluster"
 
 # Added EKS specific values
 node_group_instance_type = "t3.small"
-desired_capacity        = 2
-max_capacity           = 3
+desired_capacity        = 1
+max_capacity           = 2
 min_capacity           = 1
+node_group_name        = "orbiton-node-group"
+
+# Application configuration
+container_image = "ignatusa3/nextjs-frontend:133c6a3e7e4ff8ce161d95257979e23abf286e68"
+container_port = 3000

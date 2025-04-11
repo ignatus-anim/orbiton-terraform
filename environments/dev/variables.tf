@@ -67,3 +67,18 @@ variable "min_capacity" {
   default = 1
 }
 
+variable "node_group_name" {
+  type = string
+  
+}
+
+variable "container_image" {
+  type        = string
+  description = "Docker image for the application"
+}
+
+variable "container_port" {
+  type        = number
+  description = "Container port for the application"
+  default     = 3000
+}
