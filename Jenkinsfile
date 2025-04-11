@@ -68,8 +68,16 @@ pipeline {
                 expression { params.ACTION == 'plan' || params.ACTION == 'apply' }
             }
             steps {
-                dir(TERRAFORM_DIR) {
-                    sh 'terraform plan -var-file="terraform.tfvars" -out=tfplan'
+                withCredentials([
+                    aws(credentialsId: 'aws-credentials', accessKeyVariable: 'AWS_ACCESS_KEY_ID', secretKeyVariable: 'AWS_SECRET_ACCESS_KEY')
+                ]) {
+                    dir(TERRAFORM_DIR) {
+                        sh '''
+                            export AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID
+                            export AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY
+                            terraform plan -var-file="terraform.tfvars" -out=tfplan
+                        '''
+                    }
                 }
             }
         }
@@ -79,8 +87,16 @@ pipeline {
                 expression { params.ACTION == 'apply' }
             }
             steps {
-                dir(TERRAFORM_DIR) {
-                    sh 'terraform apply -auto-approve tfplan'
+                withCredentials([
+                    aws(credentialsId: 'aws-credentials', accessKeyVariable: 'AWS_ACCESS_KEY_ID', secretKeyVariable: 'AWS_SECRET_ACCESS_KEY')
+                ]) {
+                    dir(TERRAFORM_DIR) {
+                        sh '''
+                            export AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID
+                            export AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY
+                            terraform apply -auto-approve tfplan
+                        '''
+                    }
                 }
             }
         }
@@ -90,8 +106,16 @@ pipeline {
                 expression { params.ACTION == 'destroy' }
             }
             steps {
-                dir(TERRAFORM_DIR) {
-                    sh 'terraform destroy -var-file="terraform.tfvars" -auto-approve'
+                withCredentials([
+                    aws(credentialsId: 'aws-credentials', accessKeyVariable: 'AWS_ACCESS_KEY_ID', secretKeyVariable: 'AWS_SECRET_ACCESS_KEY')
+                ]) {
+                    dir(TERRAFORM_DIR) {
+                        sh '''
+                            export AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID
+                            export AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY
+                            terraform destroy -var-file="terraform.tfvars" -auto-approve
+                        '''
+                    }
                 }
             }
         }
@@ -101,26 +125,33 @@ pipeline {
                 expression { params.ACTION == 'apply' && params.DEPLOY_APP == 'yes' }
             }
             steps {
-                script {
-                    sh """
-                        aws eks update-kubeconfig \
-                            --region ${AWS_REGION} \
-                            --name ${PROJECT_NAME}-${ENVIRONMENT}-eks
+                withCredentials([
+                    aws(credentialsId: 'aws-credentials', accessKeyVariable: 'AWS_ACCESS_KEY_ID', secretKeyVariable: 'AWS_SECRET_ACCESS_KEY')
+                ]) {
+                    script {
+                        sh """
+                            export AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID
+                            export AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY
+                            
+                            aws eks update-kubeconfig \
+                                --region ${AWS_REGION} \
+                                --name ${PROJECT_NAME}-${ENVIRONMENT}-eks
 
-                        kubectl apply -f kubernetes/deployment.yaml
-                        kubectl rollout status deployment/tiny-node-app
+                            kubectl apply -f kubernetes/deployment.yaml
+                            kubectl rollout status deployment/tiny-node-app
 
-                        echo "Waiting for LoadBalancer to be ready..."
-                        sleep 30
-                        kubectl get service tiny-node-app-service
+                            echo "Waiting for LoadBalancer to be ready..."
+                            sleep 30
+                            kubectl get service tiny-node-app-service
 
-                        echo "EC2 Instance Details:"
-                        aws ec2 describe-instances \
-                            --region ${AWS_REGION} \
-                            --filters "Name=tag:Name,Values=${PROJECT_NAME}-${ENVIRONMENT}-ec2" \
-                            --query 'Reservations[].Instances[].PublicDnsName' \
-                            --output text
-                    """
+                            echo "EC2 Instance Details:"
+                            aws ec2 describe-instances \
+                                --region ${AWS_REGION} \
+                                --filters "Name=tag:Name,Values=${PROJECT_NAME}-${ENVIRONMENT}-ec2" \
+                                --query 'Reservations[].Instances[].PublicDnsName' \
+                                --output text
+                        """
+                    }
                 }
             }
         }
